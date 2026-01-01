@@ -1,34 +1,51 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
 
+import Landing from './pages/Landing'
+import Dashboard from './pages/Dashboard'
+import Discover from './pages/Discover'
+import RecipeDetail from './pages/RecipeDetail'
+import Onboarding from './pages/Onboarding'
+import Auth from './pages/Auth'
+import Profile from './pages/Profile'
+import Progress from './pages/Progress'
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [currentPage, setCurrentPage] = useState('landing')
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [selectedRecipeId, setSelectedRecipeId] = useState(null)
+
+  const renderPage = () => {
+    if (!isAuthenticated && currentPage !== 'landing' && currentPage !== 'auth') {
+      return <Auth setCurrentPage={setCurrentPage} setIsAuthenticated={setIsAuthenticated} />
+    } 
+
+    switch (currentPage) {
+      case 'landing':
+        return <Landing setCurrentPage={setCurrentPage} />
+      case 'auth':
+        return <Auth setCurrentPage={setCurrentPage} setIsAuthenticated={setIsAuthenticated} />
+      case 'onboarding':
+        return <Onboarding setCurrentPage={setCurrentPage} />
+      case 'dashboard':
+        return <Dashboard setCurrentPage={setCurrentPage} />
+      case 'discover':
+        return <Discover setCurrentPage={setCurrentPage} setSelectedRecipeId={setSelectedRecipeId} />
+      case 'recipe':
+        return <RecipeDetail setCurrentPage={setCurrentPage} recipeId={selectedRecipeId} />
+      case 'progress':
+        return <Progress setCurrentPage={setCurrentPage} />
+      case 'profile':
+        return <Profile setCurrentPage={setCurrentPage }/>
+      default:
+        return <Landing setCurrentPage={setCurrentPage} />
+    }
+  }
 
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    <div className='app'>
+      {renderPage()}
+    </div>
   )
 }
 
