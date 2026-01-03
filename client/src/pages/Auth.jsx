@@ -8,20 +8,38 @@ function Auth({ setCurrentPage, setIsAuthenticated }) {
     name: ''
   })
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    // Add API call for authentication
-    console.log('Form submitted:', formData)
-    setIsAuthenticated(true)
-    setCurrentPage('onboarding')
-  }
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const endpoint = isLogin ? '/api/auth/login' : '/api/auth/register';
+      const response = await fetch(`http://localhost:5000${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+    
+      const data = await response.json();
+    
+      if (response.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setIsAuthenticated(true);
+        setCurrentPage('onboarding');
+      } else {
+        alert(data.error || 'Authentication failed');
+      }
+    } catch (error) {
+      console.error('Auth error:', error);
+      alert('Network error');
+    }
+  };
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
-    })
-  }
+    });
+  };
 
   return (
     <div style={{ background: '#faf8f5'}}>
