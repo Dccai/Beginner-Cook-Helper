@@ -37,6 +37,11 @@ router.post('/register',
         [email, hashedPassword, name]
       );
       const userId = result.rows[0].id;
+
+      await query(
+        'INSERT INTO user_profiles (user_id) VALUES ($1)',
+        [userId]
+      );
       
       const token = jwt.sign(
         { userId, email },
@@ -124,5 +129,60 @@ router.get('/profile', authenticateToken, async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+
+router.put('/profile', authenticateToken, async (req, res) => {
+  try {
+    const { name, skill_level, cooking_frequency, favorite_cuisine, dietary_restrictions } = req.body;
+    
+    if (name) {
+      await query(
+        'UPDATE users SET name = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+        [name, req.user.userId]
+      );
+    }
+
+    const profileCheck = await query(
+      'SELECT id FROM user_profiles WHERE user_id = $1',
+      [req.user.userId]
+    );
+
+    if (profileCheck.rows.length > 0) {
+      await query(
+        `UPDATE user_profiles 
+         SET skill_level = COALESCE($1, skill_level),
+             cooking_frequency = COALESCE($2, cooking_frequency),
+             favorite_cuisine = COALESCE($3, favorite_cuisine),
+             dietary_restrictions = COALESCE($4, dietary_restrictions)
+         WHERE user_id = $5`,
+        [skill_level, cooking_frequency, favorite_cuisine, dietary_restrictions, req.user.userId]
+      );
+    } else {
+      await query(
+        `INSERT INTO user_profiles (user_id, skill_level, cooking_frequency, favorite_cuisine, dietary_restrictions)
+         VALUES ($1, $2, $3, $4, $5)`,
+        [req.user.userId, skill_level, cooking_frequency, favorite_cuisine, dietary_restrictions]
+      );
+    }
+
+    const result = await query(
+      `SELECT u.id, u.email, u.name, up.skill_level, up.cooking_frequency, 
+              up.favorite_cuisine, up.dietary_restrictions, up.total_recipes_completed, 
+              up.xp_points, up.current_streak 
+       FROM users u 
+       LEFT JOIN user_profiles up ON u.id = up.user_id 
+       WHERE u.id = $1`,
+      [req.user.userId]
+    );
+
+    res.json({ 
+      message: 'Profile updated successfully',
+      user: result.rows[0] 
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    res.status(500).json({ error: 'Server error updating profile' });
+  }
+});
+
 
 export default router;

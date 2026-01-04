@@ -1,23 +1,102 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 function Profile({ setCurrentPage }) {
   const [editMode, setEditMode] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [profileData, setProfileData] = useState({
-    name: 'Dean Chen',
-    email: 'dean@example.com',
-    skillLevel: 'Beginner',
-    favoriteType: 'Japanese',
-    dietaryRestrictions: ['Vegetarian']
+    name: '',
+    email: '',
+    skillLevel: '',
+    favoriteType: '',
+    dietaryRestrictions: []
   })
 
-  const handleSave = () => {
-    // Add API call to update profile
-    setEditMode(false)
+  useEffect(() => {
+    fetchProfile()
+  }, [])
+
+  const fetchProfile = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch('http://localhost:5000/api/auth/profile', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setProfileData({
+          name: data.user.name || '',
+          email: data.user.email || '',
+          skillLevel: data.user.skill_level || 'Beginner',
+          favoriteType: data.user.favorite_cuisine || 'Italian',
+          dietaryRestrictions: data.user.dietary_restrictions || []
+        })
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSave = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch('http://localhost:5000/api/auth/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: profileData.name,
+          skill_level: profileData.skillLevel,
+          favorite_cuisine: profileData.favoriteType,
+          dietary_restrictions: profileData.dietaryRestrictions
+        })
+      })
+
+      if (response.ok) {
+        const user = JSON.parse(localStorage.getItem('user'))
+        user.name = profileData.name
+        localStorage.setItem('user', JSON.stringify(user))
+        
+        setEditMode(false)
+        alert('Profile updated successfully!')
+      } else {
+        alert('Failed to update profile')
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error)
+      alert('Error updating profile')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div style={{ background: '#faf8f5', minHeight: '100vh' }}>
+        <div className="navbar">
+          <div className="navbar-logo" onClick={() => setCurrentPage('dashboard')}>
+            🍳 Cooking Helper
+          </div>
+          <div className="navbar-links">
+            <span className="nav-link" onClick={() => setCurrentPage('dashboard')}>Dashboard</span>
+            <span className="nav-link" onClick={() => setCurrentPage('discover')}>Discover</span>
+            <span className="nav-link" onClick={() => setCurrentPage('progress')}>Progress</span>
+            <span className="nav-link active" onClick={() => setCurrentPage('profile')}>Profile</span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <div className="spinner"></div>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div style={{ background: '#faf8f5', minHeight: '100vh' }}>
-      
       <div className="navbar">
         <div className="navbar-logo" onClick={() => setCurrentPage('dashboard')}>
           🍳 Cooking Helper
@@ -37,7 +116,6 @@ function Profile({ setCurrentPage }) {
         </p>
 
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '2rem' }}>
-          
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
               <h2 style={{ color: '#92400e' }}>Personal Information</h2>
@@ -47,7 +125,7 @@ function Profile({ setCurrentPage }) {
                 </button>
               ) : (
                 <div style={{ display: 'flex', gap: '1rem' }}>
-                  <button className="btn btn-secondary" onClick={() => setEditMode(false)}>
+                  <button className="btn btn-secondary" onClick={() => { setEditMode(false); fetchProfile(); }}>
                     Cancel
                   </button>
                   <button className="btn btn-primary" onClick={handleSave}>
@@ -72,8 +150,12 @@ function Profile({ setCurrentPage }) {
                   <input
                     type="email"
                     value={profileData.email}
-                    onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                    disabled
+                    style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
                   />
+                  <small style={{ color: '#78350f', fontSize: '0.85rem' }}>
+                    Email cannot be changed
+                  </small>
                 </div>
                 <div className="form-group">
                   <label style={{ color: '#92400e', fontWeight: '600' }}>Skill Level</label>
@@ -97,6 +179,7 @@ function Profile({ setCurrentPage }) {
                     <option>Mexican</option>
                     <option>American</option>
                     <option>Mediterranean</option>
+                    <option>Other</option>
                   </select>
                 </div>
               </div>
@@ -139,30 +222,32 @@ function Profile({ setCurrentPage }) {
                     Dietary Restrictions
                   </label>
                   <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    {profileData.dietaryRestrictions.map((restriction) => (
-                      <span
-                        key={restriction}
-                        style={{
-                          padding: '0.4rem 1rem',
-                          background: '#fef3c7',
-                          color: '#92400e',
-                          borderRadius: '20px',
-                          fontSize: '0.9rem',
-                          fontWeight: '500'
-                        }}
-                      >
-                        {restriction}
-                      </span>
-                    ))}
+                    {profileData.dietaryRestrictions.length > 0 ? (
+                      profileData.dietaryRestrictions.map((restriction) => (
+                        <span
+                          key={restriction}
+                          style={{
+                            padding: '0.4rem 1rem',
+                            background: '#fef3c7',
+                            color: '#92400e',
+                            borderRadius: '20px',
+                            fontSize: '0.9rem',
+                            fontWeight: '500'
+                          }}
+                        >
+                          {restriction}
+                        </span>
+                      ))
+                    ) : (
+                      <span style={{ color: '#78350f', fontStyle: 'italic' }}>None specified</span>
+                    )}
                   </div>
                 </div>
               </div>
             )}
           </div>
 
-          
           <div>
-            
             <div className="card" style={{ marginBottom: '1.5rem' }}>
               <h3 style={{ color: '#92400e', marginBottom: '1rem' }}>Account Stats</h3>
               <div style={{ marginBottom: '1rem' }}>
@@ -185,7 +270,6 @@ function Profile({ setCurrentPage }) {
               </div>
             </div>
 
-           
             <div className="card" style={{ marginBottom: '1.5rem' }}>
               <h3 style={{ color: '#92400e', marginBottom: '1rem' }}>Preferences</h3>
               <div style={{ marginBottom: '1rem' }}>
@@ -219,7 +303,6 @@ function Profile({ setCurrentPage }) {
               </div>
             </div>
 
-            
             <div className="card">
               <h3 style={{ color: '#92400e', marginBottom: '1rem' }}>Quick Actions</h3>
               <button 
@@ -240,7 +323,6 @@ function Profile({ setCurrentPage }) {
           </div>
         </div>
 
-        
         <div 
           className="card" 
           style={{ 
@@ -262,7 +344,6 @@ function Profile({ setCurrentPage }) {
             }}
             onClick={() => {
               if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-                // Add API call to delete account
                 alert('Account deletion would happen here')
               }
             }}

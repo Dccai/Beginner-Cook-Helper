@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-function Onboarding({ setCurrentPage }) {
+function Onboarding({ setCurrentPage, setHasCompletedOnboarding }) {
   const [step, setStep] = useState(1)
   const [answers, setAnswers] = useState({
     experience: '',
@@ -9,11 +9,36 @@ function Onboarding({ setCurrentPage }) {
     dietaryRestrictions: []
   })
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (step < 4) {
       setStep(step + 1)
     } else {
-      setCurrentPage('dashboard')
+      try {
+        const token = localStorage.getItem('token')
+        const response = await fetch('http://localhost:5000/api/auth/profile', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            skill_level: answers.experience,
+            cooking_frequency: answers.cookingFrequency,
+            favorite_cuisine: answers.favoriteType,
+            dietary_restrictions: answers.dietaryRestrictions
+          })
+        })
+
+        if (response.ok) {
+          setHasCompletedOnboarding(true)
+          setCurrentPage('dashboard')
+        } else {
+          alert('Failed to save profile')
+        }
+      } catch (error) {
+        console.error('Profile save error:', error)
+        alert('Error saving profile')
+      }
     }
   }
 
@@ -22,12 +47,12 @@ function Onboarding({ setCurrentPage }) {
   }
 
   return (
-    <div style={{ background: '#faf8f5', minHeight: '100vh' }}>
+    <div style={{ background: '#faf8f5', minHeight: '100vh', paddingBottom: '4rem' }}>
       <div className="navbar">
         <div className="navbar-logo">🍳 Cooking Helper</div>
       </div>
 
-      <div className="form-container" style={{ maxWidth: '600px', marginTop: '3rem' }}>
+      <div className="form-container" style={{ maxWidth: '600px', marginTop: '2rem', marginBottom: '2rem' }}>
         <h2 style={{ textAlign: 'center', color: '#92400e', marginBottom: '0.5rem' }}>
           Let's Get to Know You
         </h2>

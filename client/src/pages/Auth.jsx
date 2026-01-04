@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-function Auth({ setCurrentPage, setIsAuthenticated }) {
+function Auth({ setCurrentPage, setIsAuthenticated, setHasCompletedOnboarding }) {
   const [isLogin, setIsLogin] = useState(true)
   const [formData, setFormData] = useState({
     email: '',
@@ -24,7 +24,24 @@ function Auth({ setCurrentPage, setIsAuthenticated }) {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         setIsAuthenticated(true);
-        setCurrentPage('onboarding');
+
+        const profileResponse = await fetch('http://localhost:5000/api/auth/profile', {
+          headers: {
+            'Authorization': `Bearer ${data.token}`
+          }
+        });
+
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          const hasOnboarded = !!profileData.user.skill_level;
+          setHasCompletedOnboarding(hasOnboarded);
+          
+          if (isLogin && hasOnboarded) {
+            setCurrentPage('dashboard');
+          } else {
+            setCurrentPage('onboarding');
+          }
+        }
       } else {
         alert(data.error || 'Authentication failed');
       }
@@ -42,7 +59,7 @@ function Auth({ setCurrentPage, setIsAuthenticated }) {
   };
 
   return (
-    <div style={{ background: '#faf8f5'}}>
+    <div style={{ background: '#faf8f5', minHeight: '100vh' }}>
       <div className="navbar">
         <div className="navbar-logo" onClick={() => setCurrentPage('landing')}>
           🍳 Cooking Helper
