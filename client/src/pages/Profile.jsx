@@ -74,6 +74,47 @@ function Profile({ setCurrentPage }) {
     }
   }
 
+  const handleDeleteAccount = async () => {
+    const confirmDelete = window.confirm(
+      'Are you ABSOLUTELY sure you want to delete your account? This action cannot be undone and all your data will be permanently deleted.'
+    )
+    
+    if (!confirmDelete) return
+
+    const doubleConfirm = window.prompt(
+      'Please type "DELETE" in all caps to confirm account deletion:'
+    )
+    
+    if (doubleConfirm !== 'DELETE') {
+      alert('Account deletion cancelled. You must type "DELETE" exactly.')
+      return
+    }
+
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch('http://localhost:5000/api/auth/profile', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        
+        alert('Your account has been permanently deleted.')
+        setCurrentPage('landing')
+      } else {
+        const data = await response.json()
+        alert(data.error || 'Failed to delete account')
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error)
+      alert('Error deleting account. Please try again.')
+    }
+  }
+
   if (loading) {
     return (
       <div style={{ background: '#faf8f5', minHeight: '100vh' }}>
@@ -342,13 +383,9 @@ function Profile({ setCurrentPage }) {
               color: 'white',
               border: 'none'
             }}
-            onClick={() => {
-              if (window.confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-                alert('Account deletion would happen here')
-              }
-            }}
+            onClick={handleDeleteAccount}
           >
-            Delete Account
+            Delete Account Permanently
           </button>
         </div>
       </div>

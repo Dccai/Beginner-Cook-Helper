@@ -12,8 +12,5 @@ export const postgresConfig = {
 
 export const mongoConfig = {
     url: process.env.MONGODB_URL || 'mongodb://localhost:27017/cooking_helper',
-    options: {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
-    }
+    options: {}
 };
